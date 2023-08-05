@@ -1,0 +1,112 @@
+#define BLYNK_TEMPLATE_ID "TMPL3jRssuUcA"
+#define BLYNK_TEMPLATE_NAME "Flowmeter"
+#define BLYNK_AUTH_TOKEN "R6eiiK8DnfD7uIB2sOVFtLowKIxVA3y-"
+
+#define BLYNK_PRINT Serial
+#include <WiFi.h>
+#include <BlynkSimpleEsp32.h>
+#include <Servo.h>
+
+Servo servo1, servo2, servo3, servo4, servo5;
+
+#include "SoftwareSerial.h"
+SoftwareSerial mySerial(16, 17);
+# define Start_Byte 0x7E
+# define Version_Byte 0xFF
+# define Command_Length 0x06
+# define End_Byte 0xEF
+# define Acknowledge 0x00 // Returns info with command 0x41 [0x01: info, 0x00: no info]
+
+# define ACTIVATED LOW
+
+int buttonNext = 2;
+int buttonPause = 3;
+int buttonPrevious = 4;
+boolean isPlaying = false;
+
+char auth[] = BLYNK_AUTH_TOKEN;
+char ssid[] = "Elconics"; // Change your WiFi/Hotspot Name
+char pass[] = "Elconics@123"; // Change your WiFi/Hotspot Password
+
+int button = 5;
+
+BLYNK_WRITE(V0) {
+  // Function to handle data from virtual pin V0
+  int pinValue = param.asInt();
+  digitalWrite(2, pinValue);
+}
+
+BLYNK_WRITE(V3) {
+  // Function to handle data from virtual pin V3
+  int s3 = param.asInt();
+  servo4.write(s3);
+  Blynk.virtualWrite(V8, s3);
+  Serial.println(s3);
+}
+
+BLYNK_WRITE(V4) {
+  // Function to handle data from virtual pin V4
+  int s4 = param.asInt();
+  servo5.write(s4);
+  Blynk.virtualWrite(V9, s4);
+}
+
+void setup() {
+  Serial.begin(9600);
+  pinMode(2, OUTPUT);
+  pinMode(button, INPUT);
+  digitalWrite(button, INPUT_PULLUP);
+  servo4.attach(4);
+  servo5.attach(13);
+
+  mySerial.begin(9600);
+  delay(1000);
+  playFirst();
+  isPlaying = true;
+
+  // Uncomment the lines below if you have servo1, servo2, or servo3 attached
+  // servo1.attach(15);
+  // servo2.attach(16);
+  // servo3.attach(17);
+
+  Blynk.begin(auth, ssid, pass); // Connect to Blynk server
+  delay(2000); // Splash screen delay
+}
+
+void loop() {
+  Blynk.run(); // Continuously process Blynk-related tasks
+
+  int state = digitalRead(button);
+
+  // Generate random potentiometer value and send it to virtual pin V1
+  int potvalue = random(1, 1000);
+  Blynk.virtualWrite(V1, potvalue);
+  BLYNK_WRITE(); // This line seems to be incomplete and might not be necessary
+}
+
+BLYNK_WRITE(V7) {
+  // Called when the datastream virtual pin V2 is updated
+  // by Blynk.Console, Blynk.App, or HTTP API.
+
+  String value = param.asStr();
+
+  if (value == "play") {
+    play();
+    Serial.println("'play' button pressed");
+  } else if (value == "stop") {
+    Pause();
+    Serial.println("'stop' button pressed");
+  } else if (value == "prev") {
+    playPrevious();
+    Serial.println("'prev' button pressed");
+  } else if (value == "next") {
+    playNext();
+    Serial.println("'next' button pressed");
+  } else {
+    Serial.print("V2 = '");
+    Serial.print(value);
+    Serial.println("'");
+  }
+}
+
+// ... (rest of the code remains the same)
